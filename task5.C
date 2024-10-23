@@ -46,8 +46,8 @@ void task5() {
     }
 
 
-    double integral_f = ((double)count_f / num_points);
-    double integral_fg = ((double)count_fg / num_points);  
+    double integral_f = ((double)count_f / num_points) * A;
+    double integral_fg = ((double)count_fg / num_points) * 3.0/exp(1.0)) ;  
 
    
     std::cout << "Приближенное значение интеграла для f(x) методом Неймана: " << integral_f << std::endl;
