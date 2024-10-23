@@ -50,8 +50,8 @@ void task5() {
     double integral_fg = ((double)count_fg / num_points) * 3.0/exp(1.0)) ;  
 
    
-    std::cout << "Приближенное значение интеграла для f(x) методом Неймана: " << integral_f << std::endl;
-    std::cout << "Приближенное значение интеграла для отношения f(r3)/g(r3): " << integral_fg << std::endl;
+    std::cout << "Приближенное значение интеграла: " << integral_f << std::endl;
+    std::cout << "Приближенное значение интеграла: " << integral_fg << std::endl;
 
  
     hist->Draw();
