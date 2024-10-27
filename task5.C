@@ -12,6 +12,7 @@ void task5() {
     double A = 1.0 / exp(1.0);  
     int count_f = 0; 
     int count_fg = 0; 
+    double sum_f = 0;
     
 
     auto f = [](double x) -> double {
@@ -26,6 +27,7 @@ void task5() {
 
         double r1 = rnd->Uniform(0, 1);  
         double r2 = rnd->Uniform(0, 1 / exp(1.0));  
+        sum_f += f(r1);
 
 
         if (r2 <= f(r1)) {
@@ -46,13 +48,14 @@ void task5() {
     }
 
 
-    double integral_f = ((double)count_f / num_points) * A;
-    double integral_fg = ((double)count_fg / num_points) * 0.16 ;  
+    double integral_f = ((double)count_f / num_points)*A;
+    double integral_fg = ((double)count_fg / num_points)*0.16; 
+    double mean_f = sum_f / num_points; 
 
    
-    std::cout << "Приближенное значение интеграла: " << integral_f << std::endl;
-    std::cout << "Приближенное значение интеграла: " << integral_fg << std::endl;
-
+    std::cout << "Приближенное значение интеграла методом Неймана: " << integral_f << std::endl;
+    std::cout << "Приближенное значение интеграла методом главного значения: " << integral_fg << std::endl;
+    std::cout << "Приближенное значение интеграла методом вычисления среднего значения: " << mean_f << std::endl;
  
     hist->Draw();
 }
