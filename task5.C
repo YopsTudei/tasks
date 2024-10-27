@@ -18,7 +18,7 @@ void task5() {
         return exp(-x) * pow(x, 3);
     };
     auto g = [](double x) -> double {
-        return (1.0 / 3.0) * pow(x, 2);
+        return (log(8) / 56.0) * pow(8, x + 1);
     };
 
 
@@ -33,8 +33,8 @@ void task5() {
         }
 
 
-        double r3 = pow(r1, 1.0 / 3.0);  
-        double r4 = rnd->Uniform(0, 3 / exp(1.0));  
+        double r3 = log(7 * r1 + 1) / log(8);  
+        double r4 = rnd->Uniform(0, 0.16);  
 
 
         if (r4 <= f(r3) / g(r3)) {
@@ -47,7 +47,7 @@ void task5() {
 
 
     double integral_f = ((double)count_f / num_points) * A;
-    double integral_fg = ((double)count_fg / num_points) * 3.0/exp(1.0)) ;  
+    double integral_fg = ((double)count_fg / num_points) * 0.16 ;  
 
    
     std::cout << "Приближенное значение интеграла: " << integral_f << std::endl;
