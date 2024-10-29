@@ -23,7 +23,7 @@ void readfromfile(std::string filename, TH2D *hist)
     }
 }
 
-Int_t main()
+Int_t task2()
 {
     constexpr Double_t nbinX{50}, nbinY{50};
     constexpr Double_t x_min{50}, x_max{200};
