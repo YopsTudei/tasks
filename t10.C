@@ -85,7 +85,7 @@ void fitHistogramsSimultaneously(TH1F* hist1, TH1F* hist2) {
 }
 
 
-void t10() {
+void analyzeData() {
     std::vector<double> data1, data2;
     loadData("data_1.dat", data1);
     loadData("data_2.dat", data2);
@@ -96,12 +96,12 @@ void t10() {
     hist1->GetXaxis()->SetTitle("Units");
     hist1->GetYaxis()->SetTitle("Counts");
     hist1->Draw();
-    canvas1->SaveAs("hist1_fit.pdf");
+    canvas1->SaveAs("10_hist1_fit.pdf");
     TCanvas* canvas2 = new TCanvas("canvas2", "Histogram 2", 800, 600);
     hist2->GetXaxis()->SetTitle("Units");
     hist2->GetYaxis()->SetTitle("Counts");
     hist2->Draw();
-    canvas2->SaveAs("hist2_fit.pdf");
+    canvas2->SaveAs("10_hist2_fit.pdf");
     delete canvas1;
     delete canvas2;
 }
@@ -112,3 +112,9 @@ int main(int argc, char** argv) {
     app.Run();
     return 0;
 }
+/*Fit results:
+c = 8.55389 ± 0.243445
+A = 41.4977 ± 1.82611
+mu = 548.987 ± 0.430794
+sigma = 9.95201 ± 0.358879
+Nsignal (number of events under Gaussian) = 1035.2
