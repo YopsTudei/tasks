@@ -5,7 +5,11 @@
 #include <TH1F.h>
 #include <TCanvas.h>
 #include <TApplication.h>
+#include <TMinuit.h>
 #include <vector>
+
+TH1F* gHist1;
+TH1F* gHist2;
 
 void loadData(const char* fileName, std::vector<double>& data) {
     std::ifstream file(fileName);
@@ -23,51 +27,46 @@ TH1F* createHistogram(const std::vector<double>& data, const char* name) {
     return hist;
 }
 
-double func1(double *x, double *par) {
+void combinedChi2(int& npar, double* grad, double& f, double* par, int flag) {
     double c = par[0];
     double A = par[1];
     double mu = par[2];
     double sigma = par[3];
-    return c + A * exp(-0.5 * pow((x[0] - mu) / sigma, 2));
+    double chi2_1 = 0.0;
+    for (int i = 1; i <= gHist1->GetNbinsX(); ++i) {
+        double x = gHist1->GetBinCenter(i);
+        double observed = gHist1->GetBinContent(i);
+        double expected = c + A * std::exp(-0.5 * std::pow((x - mu) / sigma, 2.0));  
+        double error = gHist1->GetBinError(i);
+        chi2_1 += ((observed - expected) / error)*((observed - expected) / error);
+    }
+    
+    double chi2_2 = 0.0;
+    for (int i = 1; i <= gHist2->GetNbinsX(); ++i) {
+        double observed = gHist2->GetBinContent(i);
+        double error = gHist2->GetBinError(i);
+        double expected = c; 
+        chi2_2 += ((observed - expected) / error)*((observed - expected) / error);
+    }
+    
+    f = chi2_1 + chi2_2;
 }
 
-double func2(double *x, double *par) {
-    return par[0];
-}
-
-void fitHistograms(TH1F* hist1, TH1F* hist2, TF1*& f1, TF1*& f2) {
-    f1 = new TF1("f1", func1, 500, 600, 4);
-    f2 = new TF1("f2", func2, 500, 600, 1);
-    f1->SetParameters(1.0, 1.0, 550, 10);
-    f2->SetParameters(1.0);
-    hist1->Fit(f1, "R");
-    f2->FixParameter(0, f1->GetParameter(0));
-    hist2->Fit(f2, "R");
-    std::cout << "Fit parameters for data_1: c = " << f1->GetParameter(0)
-              << ", A = " << f1->GetParameter(1)
-              << ", mu = " << f1->GetParameter(2)
-              << ", sigma = " << f1->GetParameter(3) << std::endl;
-    std::cout << "Fit parameters for data_2: c = " << f2->GetParameter(0) << std::endl;
-}
-
-void calculateGaussEvents(TF1* f1) {
-    double gaussEvents = f1->Integral(500, 600);
-    std::cout << "Number of events under the Gaussian: " << gaussEvents << std::endl;
-}
-
-void plotAndSaveSeparate(TH1F* hist1, TH1F* hist2, TF1* f1, TF1* f2) {
-    TCanvas *canvas1 = new TCanvas("canvas1", "Histogram 1 with Fit", 800, 600);
-    hist1->SetLineColor(kBlue);
-    hist1->Draw();
-    f1->Draw("SAME");
-    canvas1->SaveAs("fit_results_data1.pdf");
-    TCanvas *canvas2 = new TCanvas("canvas2", "Histogram 2 with Fit", 800, 600);
-    hist2->SetLineColor(kRed);
-    hist2->Draw();
-    f2->Draw("SAME");
-    canvas2->SaveAs("fit_results_data2.pdf");
-    delete canvas1;
-    delete canvas2;
+void fitHistogramsSimultaneously(TH1F* hist1, TH1F* hist2) {
+    TMinuit minimizer(4);
+    minimizer.SetFCN(combinedChi2);
+    minimizer.DefineParameter(0, "c", 1.0, 0.1, 0.0, 10.0);
+    minimizer.DefineParameter(1, "A", 1.0, 0.1, 0.0, 100.0);
+    minimizer.DefineParameter(2, "mu", 550, 1.0, 500, 600);
+    minimizer.DefineParameter(3, "sigma", 10, 0.1, 1.0, 50.0);
+    minimizer.Migrad();
+    
+    double currentValue, currentError;
+    std::cout << "Fit results:" << std::endl;
+    for (int i = 0; i < 4; ++i) {
+        minimizer.GetParameter(i, currentValue, currentError);
+        std::cout << "Parameter " << i << " = " << currentValue << " ± " << currentError << std::endl;
+    }
 }
 
 void analyzeData() {
@@ -76,20 +75,20 @@ void analyzeData() {
     loadData("data_2.dat", data2);
     TH1F* hist1 = createHistogram(data1, "hist1");
     TH1F* hist2 = createHistogram(data2, "hist2");
-    TF1* f1 = nullptr;
-    TF1* f2 = nullptr;
-    fitHistograms(hist1, hist2, f1, f2);
-    calculateGaussEvents(f1);
-    plotAndSaveSeparate(hist1, hist2, f1, f2);
-    double chi2_1 = f1->GetChisquare();
-    double chi2_2 = f2->GetChisquare();
-    double total_chi2 = chi2_1 + chi2_2;
-    std::cout << "Chi-square for data_1 fit: " << chi2_1 << std::endl;
-    std::cout << "Chi-square for data_2 fit: " << chi2_2 << std::endl;
-    std::cout << "Total Chi-square: " << total_chi2 << std::endl;
+    gHist1 = hist1;
+    gHist2 = hist2;
+    fitHistogramsSimultaneously(hist1, hist2);
+    TCanvas* canvas1 = new TCanvas("canvas1", "Histogram 1", 800, 600);
+    hist1->Draw();
+    TCanvas* canvas2 = new TCanvas("canvas2", "Histogram 2", 800, 600);
+    hist2->Draw();
+    canvas1->SaveAs("hist1_fit.pdf");
+    canvas2->SaveAs("hist2_fit.pdf");
+    delete canvas1;
+    delete canvas2;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     TApplication app("app", &argc, argv);
     analyzeData();
     app.Run();
