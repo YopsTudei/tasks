@@ -36,7 +36,7 @@ void task6(UInt_t N = 100000) {
     TF1 *ThetaDistribution = new TF1("ThetaDistribution", "sin(x)*sin(x)", 0, TMath::Pi());
 
     for (auto i : ROOT::TSeqI(N)) {
-        Double_t KsEnergy = (T6::FULL_ENERGY - T6::MASS_OF_K) * rnd.Rndm() - T6::MASS_OF_K;
+        Double_t KsEnergy = (T6::FULL_ENERGY - T6::MASS_OF_K) * rnd.Rndm() + T6::MASS_OF_K;
         TLorentzVector Ks(0., 0., 0., T6::MASS_OF_K);
 
         TLorentzRotation T;
@@ -45,44 +45,37 @@ void task6(UInt_t N = 100000) {
         Double_t Phi = 2 * Pi() * rnd.Rndm();
         TF1 *thetaDist = new TF1("thetaDist", "1 - x^2", -1, 1);
         Double_t CosTheta = thetaDist->GetRandom(); 
-
-        //Double_t CosTheta = 2 * rnd.Rndm() - 1;
         Double_t SinTheta = Sqrt(1 - CosTheta * CosTheta);
 
         Double_t Length = -Log(rnd.Rndm()) * T6::AVERAGE_MILEAGE;
         histKsLength->Fill(Length);
 
-        Double_t bx = KsMomentum * SinTheta * Cos(Phi);
-        Double_t by = KsMomentum * SinTheta * Sin(Phi);
-        Double_t bz = KsMomentum * CosTheta;
+        Double_t bx = KsMomentum * SinTheta * Cos(Phi) / KsEnergy;
+        Double_t by = KsMomentum * SinTheta * Sin(Phi) / KsEnergy;
+        Double_t bz = KsMomentum * CosTheta / KsEnergy;
 
         T.Boost(bx, by, bz);
 
-        Double_t PiPlusEnergy = (T6::MASS_OF_K - T6::MASS_OF_PI) * rnd.Rndm() - T6::MASS_OF_PI;
-        Double_t PiPlusMoment = Sqrt(PiPlusEnergy * PiPlusEnergy - T6::MASS_OF_PI * T6::MASS_OF_PI);
+        Double_t PiEnergy = (T6::MASS_OF_K * T6::MASS_OF_K + T6::MASS_OF_PI * T6::MASS_OF_PI) / (2 * T6::MASS_OF_K);
+        Double_t PiMomentum = Sqrt(PiEnergy * PiEnergy - T6::MASS_OF_PI * T6::MASS_OF_PI);
 
         Double_t PiPlusPhi = 2 * Pi() * rnd.Rndm();
         Double_t PiPlusCosTheta = 2 * rnd.Rndm() - 1;
         Double_t PiPlusSinTheta = Sqrt(1 - PiPlusCosTheta * PiPlusCosTheta);
 
-        Double_t PiMinusEnergy = T6::MASS_OF_PI - PiPlusEnergy;
-        Double_t PiMinusMoment = Sqrt(PiMinusEnergy * PiMinusEnergy - T6::MASS_OF_PI * T6::MASS_OF_PI);
-
-        Double_t PiMinusPhi = 2 * Pi() - PiPlusPhi;
-        Double_t PiMinusCosTheta = Cos(Pi() / 2 + ACos(PiPlusCosTheta));
-        Double_t PiMinusSinTheta = Sqrt(1 - PiMinusCosTheta * PiMinusCosTheta);
-
         TLorentzVector PiPlus(
-            PiPlusMoment * PiPlusSinTheta * Cos(PiPlusPhi),
-            PiPlusMoment * PiPlusSinTheta * Sin(PiPlusPhi),
-            PiPlusMoment * PiPlusCosTheta,
-            PiPlusEnergy);
+            PiMomentum * PiPlusSinTheta * Cos(PiPlusPhi),
+            PiMomentum * PiPlusSinTheta * Sin(PiPlusPhi),
+            PiMomentum * PiPlusCosTheta,
+            PiEnergy
+        );
 
         TLorentzVector PiMinus(
-            PiMinusMoment * PiMinusSinTheta * Cos(PiMinusPhi),
-            PiMinusMoment * PiMinusSinTheta * Sin(PiMinusPhi),
-            PiMinusMoment * PiMinusCosTheta,
-            PiMinusEnergy);
+            -PiPlus.Px(),
+            -PiPlus.Py(),
+            -PiPlus.Pz(),
+            PiEnergy
+        );
 
         PiPlus = T * PiPlus;
         PiMinus = T * PiMinus;
@@ -98,8 +91,6 @@ void task6(UInt_t N = 100000) {
         } else {
             std::cerr << "Warning: One of the vectors is zero. Skipping angle calculation.\n";
         }
-
-
     }
 
     TCanvas *c1 = new TCanvas("c1", "Histograms", 1500, 800);
