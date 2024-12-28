@@ -27,31 +27,35 @@ TH1F* createHistogram(const std::vector<double>& data, const char* name) {
     return hist;
 }
 
+double funct(double* x, double* par) {
+    double value = par[0] * (par[2] * par[2] / 4.0) / 
+                   ((x[0] - par[1]) * (x[0] - par[1]) + par[2] * par[2] / 4.0) + par[3];
+    return value;
+}
+
 void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int flag) {
-    double c = par[0];
-    double A = par[1];
-    double mu = par[2];
-    double sigma = par[3];
-    double logL = 0.0;
+    double chisq = 0.0;
 
     for (int i = 1; i <= gHist1->GetNbinsX(); ++i) {
         double x = gHist1->GetBinCenter(i);
         double observed = gHist1->GetBinContent(i);
-        double lambda = c + A * exp(-0.5 * pow((x - mu) / sigma, 2));
-        if (lambda > 0) {
-            logL += observed * log(lambda) - lambda;
+        double model = funct(&x, par);
+        if (model > 0 && observed >= 0) {
+            double delta = TMath::Poisson(observed, model); 
+            chisq += -2.0 * log(delta);                     
         }
     }
 
     for (int i = 1; i <= gHist2->GetNbinsX(); ++i) {
+        double x = gHist2->GetBinCenter(i);
         double observed = gHist2->GetBinContent(i);
-        double lambda = c;
-        if (lambda > 0) {
-            logL += observed * log(lambda) - lambda;
+        double model = funct(&x, par);
+        if (model > 0 && observed >= 0) {
+            double delta = TMath::Poisson(observed, model); 
+            chisq += -2.0 * log(delta);                     
         }
     }
-
-    f = -2.0 * logL;
+    f = chisq;
 }
 
 void fitHistogramsSimultaneously(TH1F* hist1, TH1F* hist2) {
@@ -119,10 +123,3 @@ int main(int argc, char** argv) {
     app.Run();
     return 0;
 }
-/*
-Fit results:
-c = 9.81525 ± 0.258446
-A = 40.5234 ± 1.86524
-mu = 548.735 ± 0.44361
-sigma = 10.2088 ± 0.398851
-Nsignal (number of events under Gaussian) = 1036.98*/
