@@ -76,7 +76,7 @@ TF1* createFitFunction() {
 double gaussExpModel(double* x, double* par) {
     double gauss = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2));
 
-    double expPart = (1000 - par[0]) / par[3] * exp(-x[0] / par[3]);
+    double expPart = par[3] * exp(-x[0]);
 
     return gauss + expPart;
 }
@@ -88,8 +88,15 @@ TF1* createFitFunction() {
 
 
 void fitHistogram(TH1D* hist, TF1* func) {
-    func->SetParameters(25, 5, 10, 0.005); 
+    func->SetParameters(5, 5, 0.5, 1); 
+    
+    /*func->SetParLimits(0, 0, 10);      // Ограничить амплитуду до 30
+    func->SetParLimits(1, 4.5, 5.5);  // Центр пика должен быть около 5
+    func->SetParLimits(2, 0.2, 1);    // Ширина пика не больше 1
+    func->SetParLimits(3, 0.5, 5);    // Хвост должен быть ограниче
+    */
     hist->Fit(func, "R");
+    
 }
 
 void plotResults(TH1D* hist) {
