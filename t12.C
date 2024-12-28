@@ -65,7 +65,7 @@ TF1* createFitFunction() {
     TF1* func = new TF1("fitFunc", [](double* x, double* par) {
         double gauss = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2));
 
-        double expPart = (1000 - par[0])/par[3] * exp(-x[0] / par[3]);
+        double expPart = (100 - par[0])/par[3] * exp(-x[0] / par[3]);
 
         return gauss + expPart;
     }, 0, 10, 4); 
