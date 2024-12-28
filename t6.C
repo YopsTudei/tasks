@@ -56,7 +56,7 @@ void task6(UInt_t N = 100000) {
 
         T.Boost(bx, by, bz);
 
-        Double_t PiEnergy = (T6::MASS_OF_K * T6::MASS_OF_K + T6::MASS_OF_PI * T6::MASS_OF_PI) / (2 * T6::MASS_OF_K);
+        Double_t PiEnergy = MASS_OF_K / 2;
         Double_t PiMomentum = Sqrt(PiEnergy * PiEnergy - T6::MASS_OF_PI * T6::MASS_OF_PI);
 
         Double_t PiPlusPhi = 2 * Pi() * rnd.Rndm();
