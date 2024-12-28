@@ -27,10 +27,15 @@ TH1F* createHistogram(const std::vector<double>& data, const char* name) {
     return hist;
 }
 
-double funct(double* x, double* par) {
+double funct1(double* x, double* par) {
     double gaussian = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2.0));
     double background = par[3];
     return gaussian + background;
+}
+
+double funct2(double* x, double* par) {
+    double background = par[3];
+    return background;
 }
 
 void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int flag) {
@@ -39,7 +44,7 @@ void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int 
     for (int i = 1; i <= gHist1->GetNbinsX(); ++i) {
         double x = gHist1->GetBinCenter(i);
         double observed = gHist1->GetBinContent(i);
-        double model = funct(&x, par);
+        double model = funct1(&x, par);
         if (model > 0 && observed >= 0) {
             double delta = TMath::Poisson(observed, model);
             chisq += -2.0 * log(delta);
@@ -49,7 +54,7 @@ void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int 
     for (int i = 1; i <= gHist2->GetNbinsX(); ++i) {
         double x = gHist2->GetBinCenter(i);
         double observed = gHist2->GetBinContent(i);
-        double model = funct(&x, par);
+        double model = funct2(&x, par);
         if (model > 0 && observed >= 0) {
             double delta = TMath::Poisson(observed, model);
             chisq += -2.0 * log(delta);
