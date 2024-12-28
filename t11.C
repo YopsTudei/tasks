@@ -28,19 +28,15 @@ TH1F* createHistogram(const std::vector<double>& data, const char* name) {
 }
 
 double funct1(double* x, double* par) {
-    double gaussian = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2.0));
-    double background = par[3];
-    return gaussian + background;
+    return par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2.0)) + par[3];
 }
 
 double funct2(double* x, double* par) {
-    double background = par[3];
-    return background;
+    return par[3];
 }
 
 void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int flag) {
     double chisq = 0.0;
-
     for (int i = 1; i <= gHist1->GetNbinsX(); ++i) {
         double x = gHist1->GetBinCenter(i);
         double observed = gHist1->GetBinContent(i);
@@ -50,7 +46,6 @@ void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int 
             chisq += -2.0 * log(delta);
         }
     }
-
     for (int i = 1; i <= gHist2->GetNbinsX(); ++i) {
         double x = gHist2->GetBinCenter(i);
         double observed = gHist2->GetBinContent(i);
@@ -60,7 +55,6 @@ void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int 
             chisq += -2.0 * log(delta);
         }
     }
-
     f = chisq;
 }
 
@@ -93,11 +87,25 @@ void fitHistogramsSimultaneously(TH1F* hist1, TH1F* hist2) {
 
     TF1* func1 = new TF1("func1", "[0] * exp(-0.5 * pow((x - [1]) / [2], 2.0)) + [3]", 500, 600);
     func1->SetParameters(amplitude, mean, sigma, background);
-    hist1->Fit(func1, "R");
+    TF1* func2 = new TF1("func2", "[0]", 500, 600);
+    func2->SetParameter(0, background);
 
-    TF1* func2 = new TF1("func2", "[0]", 500, 600); 
-    func2->SetParameter(0, background); 
-    hist2->Fit(func2, "R");
+    TCanvas* canvas1 = new TCanvas("canvas1", "Histogram 1", 800, 600);
+    hist1->GetXaxis()->SetTitle("Units");
+    hist1->GetYaxis()->SetTitle("Counts");
+    hist1->Draw();
+    func1->Draw("same");
+    canvas1->SaveAs("11_hist1_fit.pdf");
+
+    TCanvas* canvas2 = new TCanvas("canvas2", "Histogram 2", 800, 600);
+    hist2->GetXaxis()->SetTitle("Units");
+    hist2->GetYaxis()->SetTitle("Counts");
+    hist2->Draw();
+    func2->Draw("same");
+    canvas2->SaveAs("11_hist2_fit.pdf");
+
+    delete canvas1;
+    delete canvas2;
 }
 
 void analyzeData() {
@@ -107,21 +115,8 @@ void analyzeData() {
     TH1F* hist1 = createHistogram(data1, "hist1");
     TH1F* hist2 = createHistogram(data2, "hist2");
     fitHistogramsSimultaneously(hist1, hist2);
-
-    TCanvas* canvas1 = new TCanvas("canvas1", "Histogram 1", 800, 600);
-    hist1->GetXaxis()->SetTitle("Units");
-    hist1->GetYaxis()->SetTitle("Counts");
-    hist1->Draw();
-    canvas1->SaveAs("11_hist1_fit.pdf");
-
-    TCanvas* canvas2 = new TCanvas("canvas2", "Histogram 2", 800, 600);
-    hist2->GetXaxis()->SetTitle("Units");
-    hist2->GetYaxis()->SetTitle("Counts");
-    hist2->Draw();
-    canvas2->SaveAs("11_hist2_fit.pdf");
-
-    delete canvas1;
-    delete canvas2;
+    delete hist1;
+    delete hist2;
 }
 
 int main(int argc, char** argv) {
