@@ -76,7 +76,7 @@ TF1* createFitFunction() {
 double gaussExpModel(double* x, double* par) {
     double gauss = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2));
 
-    double expPart = par[3] * exp(-x[0]);
+    double expPart = (100-par[0])/par[3] * exp(-x[0]/par[3]);
 
     return gauss + expPart;
 }
