@@ -28,9 +28,9 @@ TH1F* createHistogram(const std::vector<double>& data, const char* name) {
 }
 
 double funct(double* x, double* par) {
-    double value = par[0] * (par[2] * par[2] / 4.0) / 
-                   ((x[0] - par[1]) * (x[0] - par[1]) + par[2] * par[2] / 4.0) + par[3];
-    return value;
+    double gaussian = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2.0));
+    double background = par[3];
+    return gaussian + background;
 }
 
 void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int flag) {
@@ -41,8 +41,8 @@ void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int 
         double observed = gHist1->GetBinContent(i);
         double model = funct(&x, par);
         if (model > 0 && observed >= 0) {
-            double delta = TMath::Poisson(observed, model); 
-            chisq += -2.0 * log(delta);                     
+            double delta = TMath::Poisson(observed, model);
+            chisq += -2.0 * log(delta);
         }
     }
 
@@ -51,10 +51,11 @@ void combinedLogLikelihood(int& npar, double* grad, double& f, double* par, int 
         double observed = gHist2->GetBinContent(i);
         double model = funct(&x, par);
         if (model > 0 && observed >= 0) {
-            double delta = TMath::Poisson(observed, model); 
-            chisq += -2.0 * log(delta);                     
+            double delta = TMath::Poisson(observed, model);
+            chisq += -2.0 * log(delta);
         }
     }
+
     f = chisq;
 }
 
@@ -63,33 +64,34 @@ void fitHistogramsSimultaneously(TH1F* hist1, TH1F* hist2) {
     gHist2 = hist2;
     TMinuit minimizer(4);
     minimizer.SetFCN(combinedLogLikelihood);
-    minimizer.DefineParameter(0, "c", 1.0, 0.1, 0.0, 10.0);
-    minimizer.DefineParameter(1, "A", 1.0, 0.1, 0.0, 100.0);
-    minimizer.DefineParameter(2, "mu", 550, 1.0, 500, 600);
-    minimizer.DefineParameter(3, "sigma", 10, 0.1, 1.0, 50.0);
+    minimizer.DefineParameter(0, "Amplitude", 1.0, 0.1, 0.0, 100.0);
+    minimizer.DefineParameter(1, "Mean", 550.0, 1.0, 500.0, 600.0);
+    minimizer.DefineParameter(2, "Sigma", 10.0, 0.1, 1.0, 50.0);
+    minimizer.DefineParameter(3, "Background", 1.0, 0.1, 0.0, 10.0);
     minimizer.Migrad();
 
-    double c, A, mu, sigma, c_err, A_err, mu_err, sigma_err;
-    minimizer.GetParameter(0, c, c_err);
-    minimizer.GetParameter(1, A, A_err);
-    minimizer.GetParameter(2, mu, mu_err);
-    minimizer.GetParameter(3, sigma, sigma_err);
+    double amplitude, mean, sigma, background;
+    double amplitude_err, mean_err, sigma_err, background_err;
+    minimizer.GetParameter(0, amplitude, amplitude_err);
+    minimizer.GetParameter(1, mean, mean_err);
+    minimizer.GetParameter(2, sigma, sigma_err);
+    minimizer.GetParameter(3, background, background_err);
 
     std::cout << "Fit results:" << std::endl;
-    std::cout << "c = " << c << " ± " << c_err << std::endl;
-    std::cout << "A = " << A << " ± " << A_err << std::endl;
-    std::cout << "mu = " << mu << " ± " << mu_err << std::endl;
-    std::cout << "sigma = " << sigma << " ± " << sigma_err << std::endl;
+    std::cout << "Amplitude = " << amplitude << " ± " << amplitude_err << std::endl;
+    std::cout << "Mean = " << mean << " ± " << mean_err << std::endl;
+    std::cout << "Sigma = " << sigma << " ± " << sigma_err << std::endl;
+    std::cout << "Background = " << background << " ± " << background_err << std::endl;
 
-    double Nsignal = A * sigma * sqrt(2 * M_PI);
+    double Nsignal = amplitude * sigma * sqrt(2 * M_PI);
     std::cout << "Nsignal (number of events under Gaussian) = " << Nsignal << std::endl;
 
-    TF1* func1 = new TF1("func1", "[0] + [1] * exp(-0.5 * pow((x - [2]) / [3], 2.0))", 500, 600);
-    func1->SetParameters(c, A, mu, sigma);
+    TF1* func1 = new TF1("func1", "[0] * exp(-0.5 * pow((x - [1]) / [2], 2.0)) + [3]", 500, 600);
+    func1->SetParameters(amplitude, mean, sigma, background);
     hist1->Fit(func1, "R");
 
-    TF1* func2 = new TF1("func2", "[0]", 500, 600);
-    func2->SetParameter(0, c);
+    TF1* func2 = new TF1("func2", "[0]", 500, 600); 
+    func2->SetParameter(0, background); 
     hist2->Fit(func2, "R");
 }
 
