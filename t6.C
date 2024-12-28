@@ -43,7 +43,10 @@ void task6(UInt_t N = 100000) {
 
         Double_t KsMomentum = Sqrt(KsEnergy * KsEnergy - T6::MASS_OF_K * T6::MASS_OF_K);
         Double_t Phi = 2 * Pi() * rnd.Rndm();
-        Double_t CosTheta = 2 * rnd.Rndm() - 1;
+        TF1 *thetaDist = new TF1("thetaDist", "1 - x^2", -1, 1);
+        Double_t CosTheta = thetaDist->GetRandom(); // Генерация значений cos(θK)
+
+        //Double_t CosTheta = 2 * rnd.Rndm() - 1;
         Double_t SinTheta = Sqrt(1 - CosTheta * CosTheta);
 
         Double_t Length = -Log(rnd.Rndm()) * T6::AVERAGE_MILEAGE;
