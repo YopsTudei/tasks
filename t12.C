@@ -33,15 +33,22 @@ TH1D* createHistogram(const std::vector<double>& data, const char* name, int bin
     return hist;
 }
 
-double normalizedBreitWigner(double* x, double* par) {
+/*double normalizedBreitWigner(double* x, double* par) {
     // par[1] = M (масса резонанса)
-    // par[2] = G (ширина резонанса)
+    // par[2] = G (ширина резонанЫса)
     double M = par[1];
     double G = par[2];
     double y = sqrt(M * M * (M * M + 1)); 
     double K = (2 * sqrt(2) * M * G * y) / (TMath::Pi() * sqrt(M * M + y)); 
     double denominator = (x[0] * x[0] - M * M) * (x[0] * x[0] - M * M) + M * M * G * G;
     return K / denominator;
+}
+*/
+
+double normalizedGauss(double* x, double* par) {
+    
+    double gauss = (1/(par[1]*sqrt(2*TMath::Pi()))) * exp(-0.5*((x[0]-par[2])/par[1])*((x[0]-par[2])/par[1]));
+    return gauss;
 }
 
 /*
@@ -53,19 +60,35 @@ TF1* createFitFunction() {
 }
 */
 
-TF1* createFitFunction() {
+/*TF1* createFitFunction() {
+    // Модель Гаусса + Экспонента
     TF1* func = new TF1("fitFunc", [](double* x, double* par) {
-        double bw = par[0] * normalizedBreitWigner(x, par);
+        double gauss = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2));
 
-        double expPart = ((1000 - par[0]) / par[3]) * exp(-x[0] / par[3]);
+        double expPart = (1000 - par[0])/par[3] * exp(-x[0] / par[3]);
 
-        return bw + expPart;
-    }, 0, 10, 4);
+        return gauss + expPart;
+    }, 0, 10, 4); 
+    return func;
+}
+*/
+
+double gaussExpModel(double* x, double* par) {
+    double gauss = par[0] * exp(-0.5 * pow((x[0] - par[1]) / par[2], 2));
+
+    double expPart = (1000 - par[0]) / par[3] * exp(-x[0] / par[3]);
+
+    return gauss + expPart;
+}
+
+TF1* createFitFunction() {
+    TF1* func = new TF1("fitFunc", gaussExpModel, 0, 10, 4); 
     return func;
 }
 
+
 void fitHistogram(TH1D* hist, TF1* func) {
-    func->SetParameters(25, 5, 3, 0.005); 
+    func->SetParameters(25, 5, 10, 0.005); 
     hist->Fit(func, "R");
 }
 
