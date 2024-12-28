@@ -1,117 +1,121 @@
-#include <iostream>
-#include <cmath>
-#include <vector>
-#include <random>
+#include <ROOT/TSeq.hxx>
 #include <TF1.h>
-#include <TH1F.h>
+#include <TLorentzRotation.h>
 #include <TCanvas.h>
+#include <TH1D.h>
+#include <TLorentzVector.h>
+#include <TRandom3.h>
 #include <TMath.h>
-#include <TApplication.h>
+#include <iostream>
 
-const double mKS = 497.611; 
-const double mK_L = 497.614; 
-const double mPi = 139.570; 
+namespace T6 {
+    constexpr Double_t FULL_ENERGY = 1020;
+    constexpr Double_t MASS_OF_PI = 139.57039;
+    constexpr Double_t MASS_OF_K = 497.611;
 
-const double E_CM = 1020.0; 
+    constexpr Double_t RADIUS_OF_DETECTOR = 30;
+    constexpr Double_t LEHGTH_OF_DETECTOR = 50;
+    const Double_t MAX_LENGTH = TMath::Sqrt(RADIUS_OF_DETECTOR * RADIUS_OF_DETECTOR + LEHGTH_OF_DETECTOR * LEHGTH_OF_DETECTOR / 4);
 
-double generateThetaK() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(-1.0, 1.0);
-    
-    double cosThetaK = dis(gen);
-    return acos(cosThetaK); 
+    constexpr Double_t MIN_ENERGY_FOR_REGISTER_OF_PI = 40;
+    constexpr Double_t TWOPI = TMath::Pi();
+    constexpr Double_t AVERAGE_MILEAGE = 6;
+    constexpr Double_t C_TAU = 2.6844;
 }
 
-double generatePhiK() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 2 * M_PI);
-    
-    return dis(gen); 
-}
+void task6(UInt_t N = 100000) {
+    using namespace TMath;
 
-double generateThetaPi() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(-1.0, 1.0);
-    
-    double cosThetaPi = dis(gen);
-    return acos(cosThetaPi); 
-}
+    TRandom3 rnd(0);
 
-double generatePhiPi() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 2 * M_PI);
-    
-    return dis(gen); 
-}
+    TH1D *histKsLength = new TH1D("histKsLength", "Ks Flight Length", 100, 0, T6::MAX_LENGTH);
+    TH1D *histKsTheta = new TH1D("histKsTheta", "Ks Theta Distribution", 100, 0, Pi() / 2);
+    TH1D *histKsPhi = new TH1D("histKsPhi", "Ks Phi Distribution", 100, 0, Pi());
+    TH1D *histBTW = new TH1D("histBTW", "Angle Between Vectors", 100, -Pi(), Pi());
 
-void generateEvent(std::vector<double>& cosThetaPi, std::vector<double>& phiPi,
-                   std::vector<double>& cosThetaK, std::vector<double>& phiK,
-                   std::vector<double>& length) {
+    TF1 *ThetaDistribution = new TF1("ThetaDistribution", "sin(x)*sin(x)", 0, TMath::Pi());
 
-    
-    double thetaK = generateThetaK();
-    double phiK_val = generatePhiK();
-    double thetaPi = generateThetaPi();
-    double phiPi_val = generatePhiPi();
-    
-    double pPi = E_CM / 2; 
+    for (auto i : ROOT::TSeqI(N)) {
+        Double_t KsEnergy = (T6::FULL_ENERGY - T6::MASS_OF_K) * rnd.Rndm() - T6::MASS_OF_K;
+        TLorentzVector Ks(0., 0., 0., T6::MASS_OF_K);
 
-    if (pPi < 40.0) return; 
+        TLorentzRotation T;
 
-    cosThetaPi.push_back(cos(thetaPi));
-    phiPi.push_back(phiPi_val);
-    cosThetaK.push_back(cos(thetaK));
-    phiK.push_back(phiK_val);
+        Double_t KsMomentum = Sqrt(KsEnergy * KsEnergy - T6::MASS_OF_K * T6::MASS_OF_K);
+        Double_t Phi = 2 * Pi() * rnd.Rndm();
+        Double_t CosTheta = 2 * rnd.Rndm() - 1;
+        Double_t SinTheta = Sqrt(1 - CosTheta * CosTheta);
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(10.0, 50.0);
-    length.push_back(dis(gen)); 
-}
+        Double_t Length = -Log(rnd.Rndm()) * T6::AVERAGE_MILEAGE;
+        histKsLength->Fill(Length);
 
-void plotDistributions(const std::vector<double>& cosThetaPi, const std::vector<double>& phiPi,
-                       const std::vector<double>& cosThetaK, const std::vector<double>& phiK,
-                       const std::vector<double>& length) {
+        Double_t bx = KsMomentum * SinTheta * Cos(Phi);
+        Double_t by = KsMomentum * SinTheta * Sin(Phi);
+        Double_t bz = KsMomentum * CosTheta;
 
-    
-    TH1F* h_cosThetaPi = new TH1F("h_cosThetaPi", "Distribution of cos(Theta_pi) in KS", 100, -1, 1);
-    TH1F* h_phiPi = new TH1F("h_phiPi", "Distribution of Phi_pi in KS", 100, 0, 2 * M_PI);
-    TH1F* h_cosThetaK = new TH1F("h_cosThetaK", "Distribution of cos(Theta_K) in lab frame", 100, -1, 1);
-    TH1F* h_phiK = new TH1F("h_phiK", "Distribution of Phi_K in lab frame", 100, 0, 2 * M_PI);
-    TH1F* h_length = new TH1F("h_length", "Distribution of length of flight", 100, 10, 50);
+        T.Boost(bx, by, bz);
 
-    for (size_t i = 0; i < cosThetaPi.size(); i++) {
-        h_cosThetaPi->Fill(cosThetaPi[i]);
-        h_phiPi->Fill(phiPi[i]);
-        h_cosThetaK->Fill(cosThetaK[i]);
-        h_phiK->Fill(phiK[i]);
-        h_length->Fill(length[i]);
-    }
-    
-    TCanvas* canvas = new TCanvas("canvas", "Distributions", 800, 600);
-    canvas->Divide(2, 2);
-    canvas->cd(1);
-    h_cosThetaPi->Draw();
-    canvas->cd(2);
-    h_phiPi->Draw();
-    canvas->cd(3);
-    h_cosThetaK->Draw();
-    canvas->cd(4);
-    h_length->Draw(); 
-    canvas->SaveAs("distributions.pdf");
-}
+        Double_t PiPlusEnergy = (T6::MASS_OF_K - T6::MASS_OF_PI) * rnd.Rndm() - T6::MASS_OF_PI;
+        Double_t PiPlusMoment = Sqrt(PiPlusEnergy * PiPlusEnergy - T6::MASS_OF_PI * T6::MASS_OF_PI);
 
-int t6() {   
-    std::vector<double> cosThetaPi, phiPi, cosThetaK, phiK, length;
+        Double_t PiPlusPhi = 2 * Pi() * rnd.Rndm();
+        Double_t PiPlusCosTheta = 2 * rnd.Rndm() - 1;
+        Double_t PiPlusSinTheta = Sqrt(1 - PiPlusCosTheta * PiPlusCosTheta);
 
-    for (int i = 0; i < 10000; i++) {
-        generateEvent(cosThetaPi, phiPi, cosThetaK, phiK, length);
+        Double_t PiMinusEnergy = T6::MASS_OF_PI - PiPlusEnergy;
+        Double_t PiMinusMoment = Sqrt(PiMinusEnergy * PiMinusEnergy - T6::MASS_OF_PI * T6::MASS_OF_PI);
+
+        Double_t PiMinusPhi = 2 * Pi() - PiPlusPhi;
+        Double_t PiMinusCosTheta = Cos(Pi() / 2 + ACos(PiPlusCosTheta));
+        Double_t PiMinusSinTheta = Sqrt(1 - PiMinusCosTheta * PiMinusCosTheta);
+
+        TLorentzVector PiPlus(
+            PiPlusMoment * PiPlusSinTheta * Cos(PiPlusPhi),
+            PiPlusMoment * PiPlusSinTheta * Sin(PiPlusPhi),
+            PiPlusMoment * PiPlusCosTheta,
+            PiPlusEnergy);
+
+        TLorentzVector PiMinus(
+            PiMinusMoment * PiMinusSinTheta * Cos(PiMinusPhi),
+            PiMinusMoment * PiMinusSinTheta * Sin(PiMinusPhi),
+            PiMinusMoment * PiMinusCosTheta,
+            PiMinusEnergy);
+
+        PiPlus = T * PiPlus;
+        PiMinus = T * PiMinus;
+
+        histKsPhi->Fill(Phi);
+        histKsTheta->Fill(ACos(CosTheta));
+        if (PiPlus.Vect().Mag() > 0 && PiMinus.Vect().Mag() > 0 && Ks.Vect().Mag() > 0) {
+            double anglePlus = Ks.Vect().Angle(PiPlus.Vect());
+            double angleMinus = Ks.Vect().Angle(PiMinus.Vect());
+
+            histBTW->Fill(anglePlus);
+            histBTW->Fill(angleMinus);
+        } else {
+            std::cerr << "Warning: One of the vectors is zero. Skipping angle calculation.\n";
+        }
+
+
     }
 
-    plotDistributions(cosThetaPi, phiPi, cosThetaK, phiK, length);
+    TCanvas *c1 = new TCanvas("c1", "Histograms", 1500, 800);
+    c1->Divide(2, 3);
+
+    c1->cd(1);
+    histKsLength->Draw();
+
+    c1->cd(2);
+    histKsTheta->Draw();
+
+    c1->cd(3);
+    histKsPhi->Draw();
+
+    c1->cd(4);
+    histBTW->Draw();
+}
+
+int main() {
+    task6();
     return 0;
 }
