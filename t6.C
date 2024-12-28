@@ -36,7 +36,7 @@ void task6(UInt_t N = 100000) {
     TF1 *ThetaDistribution = new TF1("ThetaDistribution", "sin(x)*sin(x)", 0, TMath::Pi());
 
     for (auto i : ROOT::TSeqI(N)) {
-        Double_t KsEnergy = (T6::FULL_ENERGY - T6::MASS_OF_K) * rnd.Rndm() + T6::MASS_OF_K;
+        Double_t KsEnergy = T6::FULL_ENERGY/2;
         TLorentzVector Ks(0., 0., 0., T6::MASS_OF_K);
 
         TLorentzRotation T;
